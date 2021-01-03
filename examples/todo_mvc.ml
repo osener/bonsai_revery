@@ -75,7 +75,7 @@ module Theme = struct
   let app_background = Color.hex "#f4edfe"
   let text_color = Color.hex "#513B70"
   let dimmed_text_color = Color.hex "#DAC5F7"
-  let title_text_color = Color.hex "#EADDFC"
+  let title_text_color = Color.hex "#D1C3E3"
   let panel_background = Color.hex "#F9F5FF"
   let panel_border_color = Color.hex "#EADDFC"
   let panel_border = Style.border ~width:1 ~color:panel_border_color
@@ -95,7 +95,7 @@ module Styles = struct
       ; left 0
       ; right 0
       ; align_items `Stretch
-      ; justify_content `Center
+      ; justify_content `FlexStart
       ; flex_direction `Column
       ; background_color Theme.app_background
       ; padding_vertical 2
@@ -104,29 +104,22 @@ module Styles = struct
       ]
 
 
-  let bonsai =
-    Style.
-      [ align_self `FlexStart
-      ; margin_top (Theme.remi 2.)
-      ; margin_bottom (Theme.remi 2.)
-      ; margin_left 50
-      ; margin_right 100
-      ; width 150
-      ; height 150
-      ]
-
-
-  let title =
-    Style.
-      [ color Theme.title_text_color
-      ; align_self `Center
-      ; margin_top (Theme.remi 2.)
-      ; text_wrap NoWrap
-      ]
-
+  let bonsai = Style.[ width 150; height 150; margin_bottom 10 ]
+  let bonsai_box = Style.[ align_items `Center ]
+  let title = Style.[ color Theme.title_text_color; align_self `Center; text_wrap NoWrap ]
 
   let title_font =
     Attr.KindSpec.update_text ~f:(fun a -> { a with size = Theme.rem 4. }) Theme.font_info
+
+
+  let header =
+    Style.
+      [ flex_grow 0
+      ; align_items `Center
+      ; justify_content `SpaceBetween
+      ; flex_direction `Row
+      ; padding 20
+      ]
 end
 
 module Components = struct
@@ -168,13 +161,6 @@ module Components = struct
   end
 
   module Checkbox = struct
-    module Input = struct
-      type t =
-        { checked : bool
-        ; on_toggle : Event.t
-        }
-    end
-
     module Styles = struct
       let box =
         Style.
@@ -271,6 +257,7 @@ module Components = struct
           ; margin 2
           ; align_items `Center
           ; overflow `Hidden
+          ; flex_grow 0
           ]
 
 
@@ -288,7 +275,7 @@ module Components = struct
           Theme.font_info
 
 
-      let input = Style.[ border ~width:0 ~color:Colors.transparent_white; width 4000 ]
+      let input = Style.[ border ~width:0 ~color:Colors.transparent_white ]
     end
 
     let view ~all_completed ~on_toggle_all children =
@@ -307,7 +294,7 @@ module Components = struct
     module Styles = struct
       let container =
         let open Style in
-        [ flex_direction `Row; justify_content `SpaceBetween ]
+        [ flex_grow 0; flex_direction `Row; justify_content `SpaceBetween ]
 
 
       let filterButtonsContainer =
@@ -382,12 +369,54 @@ module Components = struct
   end
 end
 
+let drag_bonsai =
+  let img =
+    box
+      Attr.[ style Styles.bonsai_box ]
+      [ image
+          Attr.
+            [ style Styles.bonsai
+            ; kind KindSpec.(ImageNode (Image.make ~source:(Image.File Theme.bonsai_path) ()))
+            ]
+      ; text
+          Attr.[ style Style.[ color Theme.title_text_color ]; kind Theme.font_info ]
+          "( drag me! )"
+      ] in
+  Bonsai.pure ~f:(fun (_model, inject) -> img, Draggable.props []) >>> Draggable.component
+
+
+let slider_box =
+  let%map.Bonsai value, slider =
+    Bonsai.pure ~f:(fun (_model, _inject) ->
+        Slider.props
+          ~track_color:Theme.dimmed_text_color
+          ~thumb_color:(Color.hex "#9D77D1")
+          ~max_value:100.
+          ~vertical:false
+          ~init_value:50.
+          ~track_thickness:5
+          ())
+    >>> Slider.component in
+  let display =
+    text
+      Attr.[ style Style.[ color Theme.title_text_color; margin_top 5 ]; kind Theme.font_info ]
+      Int.(of_float value |> to_string) in
+  box Attr.[ style Style.[ align_items `Center ] ] [ slider; display ]
+
+
 let todo_list =
-  let%map.Bonsai todos =
-    Tuple2.map_fst ~f:(fun model ->
-        Map.filter model.Model.todos ~f:(Todo.is_visible ~filter:model.filter))
-    @>> Bonsai.Map.associ_input_with_extra (module Int) Components.Todo.component in
-  box Attr.[ style Style.[ flex_grow 1 ] ] (Map.data todos)
+  Tuple2.map_fst ~f:(fun model ->
+      Map.filter model.Model.todos ~f:(Todo.is_visible ~filter:model.filter))
+  @>> Bonsai.Map.associ_input_with_extra (module Int) Components.Todo.component
+
+
+let scroll_view_list =
+  let props =
+    ScrollView.props
+      ~track_color:Theme.dimmed_text_color
+      ~thumb_color:(Color.hex "#9D77D1")
+      Style.[ flex_direction `Column; flex_grow 1; flex_shrink 1 ] in
+  Bonsai.map todo_list ~f:(fun children -> Map.data children, props) >>> ScrollView.component
 
 
 let text_input =
@@ -416,7 +445,6 @@ let footer =
   Bonsai.pure ~f:(fun (model, inject) ->
       let completed_count = Map.count model.Model.todos ~f:Todo.completed in
       let active_count = Map.length model.todos - completed_count in
-
       Components.Footer.view ~inject ~active_count ~completed_count ~current_filter:model.filter)
 
 
@@ -453,19 +481,11 @@ let state_component =
 
 let app : (unit, Element.t) Bonsai_revery.Bonsai.t =
   state_component
-  >>> let%map.Bonsai todo_list = todo_list
+  >>> let%map.Bonsai scroll_view_list = scroll_view_list
       and add_todo = add_todo
+      and _, _, _, bonsai = drag_bonsai
+      and slider_box = slider_box
       and footer = footer in
       let title = text Attr.[ style Styles.title; kind Styles.title_font ] "todoMVC" in
-      let bonsai =
-        image
-          Attr.
-            [ style Styles.bonsai
-            ; kind KindSpec.(ImageNode (Image.make ~source:(Image.File Theme.bonsai_path) ()))
-            ] in
-      let header =
-        box
-          Attr.[ style Style.[ justify_content `FlexStart; flex_direction `Row ] ]
-          [ bonsai; title ] in
-
-      box Attr.[ style Styles.app_container ] [ header; add_todo; todo_list; footer ]
+      let header = box Attr.[ style Styles.header ] [ bonsai; title; slider_box ] in
+      box Attr.[ style Styles.app_container ] [ header; add_todo; scroll_view_list; footer ]

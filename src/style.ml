@@ -23,6 +23,9 @@ type text_wrap_type = Revery.TextWrapping.wrapType =
   | WrapIgnoreWhitespace
   | WrapHyphenate
 
+type flex_direction =
+  Flex__LayoutTypes.Create(Revery_UI__Layout.Node)(Flex__FixedEncoding).flexDirection
+
 let align_items : _ -> t = UI.Style.alignItems
 let align_self : _ -> t = UI.Style.alignSelf
 let background_color : Color.t -> t = UI.Style.backgroundColor
@@ -60,8 +63,10 @@ let cursor cursor_type =
   (UI.Style.cursor cursor : t)
 
 
+let flex_basis : _ -> t = UI.Style.flexBasis
 let flex_direction : _ -> t = UI.Style.flexDirection
 let flex_grow : _ -> t = UI.Style.flexGrow
+let flex_shrink : _ -> t = UI.Style.flexShrink
 let flex_wrap : _ -> t = UI.Style.flexWrap
 let height : _ -> t = UI.Style.height
 let justify_content : _ -> t = UI.Style.justifyContent
@@ -80,6 +85,7 @@ let max_height : _ -> t = UI.Style.maxHeight
 let max_width : _ -> t = UI.Style.maxWidth
 let min_height : _ -> t = UI.Style.minHeight
 let min_width : _ -> t = UI.Style.minWidth
+let opacity : _ -> t = UI.Style.opacity
 let overflow : _ -> t = UI.Style.overflow
 let padding : _ -> t = UI.Style.padding
 let padding2 : horizontal:int -> vertical:int -> t = UI.Style.padding2

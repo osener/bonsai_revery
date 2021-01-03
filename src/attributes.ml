@@ -23,6 +23,7 @@ type native_event =
   | Mouse_over of (Node_events.Mouse_move.t -> Event.t)
   | Mouse_out of (Node_events.Mouse_move.t -> Event.t)
   | Dimensions_changed of (Node_events.Dimensions_changed.t -> Event.t)
+  | Bounding_box_changed of (Node_events.Bounding_box_changed.t -> Event.t)
   | Blur of Event.t
   | Focus of Event.t
 
@@ -243,6 +244,8 @@ let make ?default_style:custom_default_style ?default_kind attribute_list =
       attrs.native_events <- { attrs.native_events with onMouseOut = Some (handle f) }
     | Native_event_handler (Dimensions_changed f) ->
       attrs.native_events <- { attrs.native_events with onDimensionsChanged = Some (handle f) }
+    | Native_event_handler (Bounding_box_changed f) ->
+      attrs.native_events <- { attrs.native_events with onBoundingBoxChanged = Some (handle f) }
     | Native_event_handler (Blur a) ->
       attrs.native_events <- { attrs.native_events with onBlur = Some (handle (fun () -> a)) }
     | Native_event_handler (Focus a) ->
@@ -266,6 +269,7 @@ let on_mouse_leave f = Native_event_handler (Mouse_leave f)
 let on_mouse_over f = Native_event_handler (Mouse_over f)
 let on_mouse_out f = Native_event_handler (Mouse_out f)
 let on_dimensions_changed f = Native_event_handler (Dimensions_changed f)
+let on_bounding_box_changed f = Native_event_handler (Bounding_box_changed f)
 let on_focus e = Native_event_handler (Focus e)
 let on_blur e = Native_event_handler (Blur e)
 let on_click e = Custom_event_handler (Left_click e)

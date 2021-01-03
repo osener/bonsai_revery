@@ -65,3 +65,7 @@ module Keyboard = struct
 end
 
 module Dimensions_changed = Revery_UI.NodeEvents.DimensionsChangedEventParams
+
+module Bounding_box_changed = struct
+  type t = Revery_Math.BoundingBox2d.t
+end
